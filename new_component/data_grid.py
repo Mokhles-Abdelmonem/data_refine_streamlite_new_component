@@ -27,7 +27,7 @@ if 'uploaded' not in st.session_state:
     st.session_state.uploaded = False
 
 def main():
-    st.title("File Upload Example")
+    st.title("Upload your Data File")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
     if uploaded_file :
@@ -37,7 +37,6 @@ def main():
         if 'df' not in st.session_state:
             df = pd.read_csv(uploaded_file, nrows=100)
             st.session_state.df = df
-            print("read_csv only one time >>>> ", df.columns)
             
         df = st.session_state.df
         st.dataframe(df, use_container_width=True)
@@ -288,7 +287,7 @@ def main():
                 f"chart for row {row} & column {col}",
                 options=chart_options,
                 )
-                color= f"color_discrete_sequence = ['#F63366']*{len(df_grouped)},"
+                color= f"color_discrete_sequence = ['#F63366']*{len(df_grouped)}"
                 if chart_selected == "line":
                     color_cols = cat_col_list+bool_col_list
                     color_cols.insert(0, None)
@@ -297,15 +296,15 @@ def main():
                     options=color_cols,
                     )
                     if col_selected :
-                        color = f'color="{col_selected}",'
-                cmd = f"""chart = px.{chart_selected}(df_grouped,
-                                '{col}',
-                                '{row}',
-                                {color}
-                                template= 'plotly_white')"""
+                        color = f'color="{col_selected}"'
+                cmd = f"""
+chart = px.{chart_selected}(df_grouped,'{col}','{row}',{color}, template= 'plotly_white')
+print(chart)
+st.plotly_chart(chart)
+                        """
                 exec(cmd)
-                fig = go.Figure(chart)
-                st.plotly_chart(fig)
+
+
 
 
     else:
