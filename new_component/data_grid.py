@@ -30,8 +30,6 @@ def main():
     st.title("File Upload Example")
     uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
-    st.sidebar.write("File view!")
-
     if uploaded_file :
         if not st.session_state.uploaded:
             st.session_state.uploaded = True
