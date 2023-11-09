@@ -6,13 +6,18 @@ from processor import DataProcess, ColumnProcess
 import plotly.express as px
 import plotly.graph_objs as go
 
-st.set_page_config(layout="wide")
 
 
 _custom_dataframe = components.declare_component(
     "DataGrid",
     url="http://localhost:3000"
 )
+
+
+def get_attribute(obj: object, attr: str) -> any:
+    if hasattr(obj, "__getattribute__"):
+        return obj.__getattribute__(attr)
+    raise AttributeError("the object does not have  __getattribute__")
 
 
 def custom_dataframe(columns, rows, key=None):
@@ -27,8 +32,8 @@ if 'uploaded' not in st.session_state:
     st.session_state.uploaded = False
 
 def main():
-    st.title("Upload your Data File")
-    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+    st.title("Data Visualization App")
+    uploaded_file = st.file_uploader("upload your data here :", type=["csv"])
 
     if uploaded_file :
         if not st.session_state.uploaded:
@@ -39,10 +44,11 @@ def main():
             st.session_state.df = df
             
         df = st.session_state.df
-        st.dataframe(df, use_container_width=True)
-            # Processor = ColumnProcess(df, col)
-            # callable_method = getattr(Processor, event)
-            # df = callable_method()
+        edited_df = st.data_editor(df)
+
+        # Processor = ColumnProcess(df, col)
+        # callable_method = getattr(Processor, event)
+        # df = callable_method()
 
 
     
@@ -134,8 +140,7 @@ def main():
                     options=["range", "values"],
                     )
                     if filter_type == "range" :
-                        cmd = f"dt_col = df[date_col].dt.{dt_filter_value}"
-                        exec(cmd)
+                        dt_col = get_attribute(df[date_col].dt, dt_filter_value)
                         mini = int(dt_col.max())
                         maxi = int(dt_col.min())
                         slid_range = maxi - mini
@@ -147,8 +152,7 @@ def main():
                             mini, maxi, (mini, maxi),
                             step=steps,
                             )
-                        cmd = F"mask =  (df[date_col].dt.{dt_filter_value} >= {dt_slider_values[0]}) & (df[date_col].dt.{dt_filter_value} <= {dt_slider_values[1]})"
-                        exec(cmd)
+                        mask =  (get_attribute(df[date_col].dt, dt_filter_value) >= dt_slider_values[0]) & (get_attribute(df[date_col].dt, dt_filter_value) <= dt_slider_values[1])
                         df = df[mask]
                     if filter_type == 'values':
                         dt_list = df[date_col].dt.year.unique()
@@ -214,8 +218,8 @@ def main():
                         df_filtered =  df_filtered.groupby(col)
                         if len(df_grouped) <= 1 :
                             return df
-                        cmd = f"global grouped; grouped = df_grouped.{measurment_dict[measurs]}()[['{filter_col}']]"
-                        exec(cmd)
+                        global grouped; 
+                        grouped = get_attribute(df_grouped, measurment_dict[measurs])()[['{filter_col}']]
                         mini = int(grouped.min()[0])
                         maxi = int(grouped.max()[0])
                         slider_range = maxi - mini
@@ -227,8 +231,7 @@ def main():
                             mini, maxi, (mini, maxi),
                             step=step,
                             )
-                        cmd = f"df_filtered = df_filtered.filter(lambda x: {values[1]} >= x['{filter_col}'].{measurment_dict[measurs]}() >= {values[0]})"
-                        exec(cmd, locals(), ldict)
+                        df_filtered = df_filtered.filter(lambda x: values[1] >= get_attribute(x[filter_col], measurment_dict[measurs])() >= values[0])
                         df_filtered = ldict["df_filtered"]
                     return df_filtered
             return df
@@ -252,14 +255,14 @@ def main():
                             f"Measurement applied on col {col}",
                             options=measures_options,
                             )
-                            exec(f"df_grouped = df.groupby(row).{measurment_dict[measure_option]}().reset_index()")
+                            df_grouped = get_attribute(df.groupby(row), measurment_dict[measure_option])().reset_index()
                     else:
                         if row in num_col_list:
                             measure_option = st.selectbox(
                             f"Measurement applied on row {row} for column {col}",
                             options=measures_options,
                             )
-                            exec(f"df_grouped = df.groupby(col).{measurment_dict[measure_option]}().reset_index()")
+                            df_grouped = get_attribute(df.groupby(col), measurment_dict[measure_option])().reset_index()
                         else:
                             if row == col :
                                 df[f"_{row}"] =  df[row]
@@ -279,15 +282,13 @@ def main():
                     else:
                         continue 
                     df_grouped = df_grouped.reset_index(name=count)
-                    print("\n df_grouped.heqad() \n ")
-                    print(df_grouped[[col,row]].head)
 
                 chart_options = ["bar", "line", "histogram", "area","box", "pie"]
                 chart_selected = st.selectbox(
                 f"chart for row {row} & column {col}",
                 options=chart_options,
                 )
-                color= f"color_discrete_sequence = ['#F63366']*{len(df_grouped)}"
+                color= {"color_discrete_sequence": ['#F63366']*len(df_grouped)}
                 if chart_selected == "line":
                     color_cols = cat_col_list+bool_col_list
                     color_cols.insert(0, None)
@@ -296,13 +297,12 @@ def main():
                     options=color_cols,
                     )
                     if col_selected :
-                        color = f'color="{col_selected}"'
-                cmd = f"""
-chart = px.{chart_selected}(df_grouped,'{col}','{row}',{color}, template= 'plotly_white')
-print(chart)
-st.plotly_chart(chart)
-                        """
-                exec(cmd)
+                        color = {"color": col_selected}
+
+                chart = get_attribute(px, chart_selected)(df_grouped, col, row, **color, template='plotly_white')
+                st.plotly_chart(chart)
+
+                
 
 
 
