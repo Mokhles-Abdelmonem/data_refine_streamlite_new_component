@@ -3,3 +3,7 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+/* Reduce the space between ListItemIcon and ListItemText */
+.MuiListItem-root .MuiListItemIcon-root {
+  text-align: right; /* Adjust the margin as per your needs */
+}

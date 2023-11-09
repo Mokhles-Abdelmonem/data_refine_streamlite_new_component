@@ -11,7 +11,7 @@ class DataProcess():
         return self.df.drop_duplicates()
 
     def edit_cell(self, changes):
-        for key, value in changes.items() :
+        for key, value in changes.items():
             x , y = key.split(',')
             self.df.iat[int(x), int(y)] = value
         return self.df

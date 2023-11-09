@@ -9,6 +9,8 @@ import FormDialog from './DialogForm';
 import DfEvents from './Events';
 import Menu from "@mui/material/Menu";
 import { NestedMenuItem } from "mui-nested-menu";
+import TextField from '@mui/material/TextField';
+import ListMenu from './Menu';
 
 
 function CustomUserItem(props) {
@@ -29,9 +31,8 @@ function CustomUserItem(props) {
     });
     menuItemsWrap.push(
       <>
-      <NestedMenuItem label={"Drop"} parentMenuOpen={open}>
-        {menuItems}
-      </NestedMenuItem>
+        {ListMenu()}
+        {/* {menuItems} */}
       </>
     )
     return menuItemsWrap;   
