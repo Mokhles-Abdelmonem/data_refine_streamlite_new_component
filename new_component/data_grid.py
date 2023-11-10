@@ -32,7 +32,7 @@ if 'uploaded' not in st.session_state:
     st.session_state.uploaded = False
 
 def main():
-    st.title("Data Visualization App")
+    st.title("Data Insights")
     uploaded_file = st.file_uploader("upload your data here :", type=["csv"])
 
     if uploaded_file :
