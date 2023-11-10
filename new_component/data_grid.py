@@ -32,6 +32,7 @@ if 'uploaded' not in st.session_state:
     st.session_state.uploaded = False
 
 def main():
+    st.markdown('<p style="text-align: center;"><a href="https://mokhles-abdelmonem-portfolio.streamlit.app">Visit My Portfolio</a></p>', unsafe_allow_html=True)
     st.title("Data Insights")
     uploaded_file = st.file_uploader("upload your data here :", type=["csv"])
 
@@ -219,7 +220,7 @@ def main():
                         if len(df_grouped) <= 1 :
                             return df
                         global grouped; 
-                        grouped = get_attribute(df_grouped, measurment_dict[measurs])()[['{filter_col}']]
+                        grouped = get_attribute(df_grouped, measurment_dict[measurs])()[[filter_col]]
                         mini = int(grouped.min()[0])
                         maxi = int(grouped.max()[0])
                         slider_range = maxi - mini
