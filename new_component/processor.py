@@ -33,7 +33,7 @@ class ColumnProcess(DataProcess):
     def drop_column(self) -> DataFrame:
         return self.df.drop(columns=[self.column])
 
-    def fill_null_col(self, value:str|int) -> DataFrame:
+    def fill_null_col(self, value:str) -> DataFrame:
         self.df[self.column] = self.df[self.column].fillna(value)
         return self.df
 
