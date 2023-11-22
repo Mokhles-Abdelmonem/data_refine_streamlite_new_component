@@ -1,104 +1,41 @@
 import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
-import json
-from processor import DataProcess, ColumnProcess
+from processor import DataProcess, ColumnProcess, Classifier
 import plotly.express as px
 import plotly.graph_objs as go
+from data_loader import Loader
+from data_cleaner import Cleaner
 
+from utils import (
+    get_attribute,
+    has_numbers,
+    portfolio_link,
+    measures_methodes
+    )
 
-
-_custom_dataframe = components.declare_component(
-    "DataGrid",
-    url="http://localhost:3000"
-)
-
-
-def get_attribute(obj: object, attr: str) -> any:
-    if hasattr(obj, "__getattribute__"):
-        return obj.__getattribute__(attr)
-    raise AttributeError("the object does not have  __getattribute__")
-
-
-def custom_dataframe(columns, rows, key=None):
-    return _custom_dataframe(columns=columns, rows=rows, key=key, default={})
-
-
-def load_df(df):
-    df_json = df.to_json(orient="index")
-    return df.columns.to_list(), df_json
-
-if 'uploaded' not in st.session_state:
-    st.session_state.uploaded = False
 
 def main():
-    st.markdown('<p style="text-align: center;"><a href="https://mokhles-abdelmonem-portfolio.streamlit.app">Visit My Portfolio</a></p>', unsafe_allow_html=True)
+    portfolio_link()
     st.title("Data Insights")
-    uploaded_file = st.file_uploader("upload your data here :", type=["csv"])
+    df = Loader().uploaded_file()
+    if not df.empty:
 
-    if uploaded_file :
-        if not st.session_state.uploaded:
-            st.session_state.uploaded = True
-
-        if 'df' not in st.session_state:
-            df = pd.read_csv(uploaded_file, nrows=100)
-            st.session_state.df = df
-            
-        df = st.session_state.df
-        edited_df = st.data_editor(df)
-
-        # Processor = ColumnProcess(df, col)
-        # callable_method = getattr(Processor, event)
-        # df = callable_method()
-
-
-    
+        cleaner = Cleaner(df)
+        cleaner.clean_data()
+        cleaner.data_editor()
 
         # ---- Variables ----
 
+        classifier = Classifier(df=df)
+        (
+            numeric_columns,
+            boolean_columns,
+            datetime_columns,
+            categorical_columns,
+            col_list
 
-        def has_numbers(listString):
-            for inputString in listString :
-                if not any(char.isdigit() for char in str(inputString)):
-                    return False
-            return True
-
-
-        measurment_dict ={
-            "SUM":"sum",
-            "AVRAGE":"mean",
-            "MEDIAN":"median",
-            "COUNT":"count",
-            "COUNT (DISTINCT)":"count",
-            "MINIMUM":"min",
-            "MAXIMUM":"max",
-            "STANDARD DEVIATION":"std",
-            "STANDARD DEVIATION (POPULATION)":"std",
-            "VARIANCE":"var",
-            "VARIANCE (POPULATION)":"var",
-        }
-        numerics = ['int16', 'int32', 'int64','float16', 'float32', 'float64']
-        numeric_columns = df.select_dtypes(include=numerics)
-        num_col_list  = numeric_columns.columns.to_list()
-        bool_columns = df.select_dtypes(include=bool)
-        bool_col_list = bool_columns.columns.to_list()
-        col_list = df.columns.to_list()
-
-        cat_col_list = list((set(col_list) - set(bool_col_list)) - set(num_col_list))
-        date_time_list = []
-        for col in  df[cat_col_list]:
-            sample = df[col].sample(10).to_list()
-            if len(col) > 6 and has_numbers(sample) :
-                try:
-                    df[col] = pd.to_datetime(df[col])
-                    date_time_list.append(col)
-                    cat_col_list.remove(col)
-                except:
-                    pass 
-
-
-
-
+        ) = classifier.classify()
 
         # ---- column ---- 
 
@@ -122,11 +59,11 @@ def main():
 
         dt_col = None
         mask = None 
-        st.sidebar.header("Filters:")
-        if date_time_list :
+        st.sidebar.header("Filters :")
+        if datetime_columns :
             date_time_filter = st.sidebar.multiselect(
                 "date&time filter: ",
-                options=date_time_list,
+                options=datetime_columns,
             )
             if date_time_filter :
                 for date_col in date_time_filter:
@@ -171,7 +108,7 @@ def main():
 
         categoric_filter = st.sidebar.multiselect(
             "filter by catogery and boolian values: ",
-            options=cat_col_list+bool_col_list,
+            options=categorical_columns+boolean_columns,
             
         )
 
@@ -190,12 +127,12 @@ def main():
 
         numberic_filter = st.sidebar.multiselect(
             "filter by measurment values: ",
-            options=num_col_list,
+            options=numeric_columns,
             
         )
 
 
-        measures_options = measurment_dict.keys()
+        measures_options = measures_methodes.keys()
         numberic_filter_dict = {}
         if numberic_filter :
             for col in numberic_filter:
@@ -210,7 +147,7 @@ def main():
 
         # --- DISPLAY DATAFRAME ---
         def filter_groupby(col):
-            if not col in num_col_list and col != "(Count)" :
+            if not col in numeric_columns and col != "(Count)" :
                 if numberic_filter_dict:
                     df_grouped = df.groupby(col)
                     df_filtered =  df
@@ -220,7 +157,7 @@ def main():
                         if len(df_grouped) <= 1 :
                             return df
                         global grouped; 
-                        grouped = get_attribute(df_grouped, measurment_dict[measurs])()[[filter_col]]
+                        grouped = get_attribute(df_grouped, measures_methodes[measurs])()[[filter_col]]
                         mini = int(grouped.min()[0])
                         maxi = int(grouped.max()[0])
                         slider_range = maxi - mini
@@ -232,7 +169,7 @@ def main():
                             mini, maxi, (mini, maxi),
                             step=step,
                             )
-                        df_filtered = df_filtered.filter(lambda x: values[1] >= get_attribute(x[filter_col], measurment_dict[measurs])() >= values[0])
+                        df_filtered = df_filtered.filter(lambda x: values[1] >= get_attribute(x[filter_col], measures_methodes[measurs])() >= values[0])
                         df_filtered = ldict["df_filtered"]
                     return df_filtered
             return df
@@ -245,8 +182,8 @@ def main():
                 df = filter_groupby(row)
                 count = "Count"
                 if col != "(Count)" and row != "(Count)":
-                    if col in num_col_list:
-                        if row in num_col_list:
+                    if col in numeric_columns:
+                        if row in numeric_columns:
                             if row == col :
                                 df[f"_{row}"] =  df[row]
                                 row = f"_{row}"
@@ -256,14 +193,14 @@ def main():
                             f"Measurement applied on col {col}",
                             options=measures_options,
                             )
-                            df_grouped = get_attribute(df.groupby(row), measurment_dict[measure_option])().reset_index()
+                            df_grouped = get_attribute(df.groupby(row), measures_methodes[measure_option])().reset_index()
                     else:
-                        if row in num_col_list:
+                        if row in numeric_columns:
                             measure_option = st.selectbox(
                             f"Measurement applied on row {row} for column {col}",
                             options=measures_options,
                             )
-                            df_grouped = get_attribute(df.groupby(col), measurment_dict[measure_option])().reset_index()
+                            df_grouped = get_attribute(df.groupby(col), measures_methodes[measure_option])().reset_index()
                         else:
                             if row == col :
                                 df[f"_{row}"] =  df[row]
@@ -291,7 +228,7 @@ def main():
                 )
                 color= {"color_discrete_sequence": ['#F63366']*len(df_grouped)}
                 if chart_selected == "line":
-                    color_cols = cat_col_list+bool_col_list
+                    color_cols = categorical_columns+boolean_columns
                     color_cols.insert(0, None)
                     col_selected = st.selectbox(
                     f"Select color columns to row {row} & column {col}",
