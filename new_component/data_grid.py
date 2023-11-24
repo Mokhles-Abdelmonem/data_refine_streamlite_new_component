@@ -6,19 +6,24 @@ import plotly.express as px
 import plotly.graph_objs as go
 from data_loader import Loader
 from data_cleaner import Cleaner
+from Filters import DateTimeFilter, CategoricalFilter, NumericFilter
+
 
 from utils import (
     get_attribute,
     has_numbers,
     portfolio_link,
+    load_state,
     measures_methodes
     )
 
 
 def main():
+    load_state()
     portfolio_link()
     st.title("Data Insights")
     df = Loader().uploaded_file()
+
     if not df.empty:
 
         cleaner = Cleaner(df)
@@ -53,76 +58,24 @@ def main():
             
         )
 
-
         # ---- SIDEBAR ----
 
+        # ---- Filters ----
 
-        dt_col = None
-        mask = None 
         st.sidebar.header("Filters :")
-        if datetime_columns :
-            date_time_filter = st.sidebar.multiselect(
-                "date&time filter: ",
-                options=datetime_columns,
-            )
-            if date_time_filter :
-                for date_col in date_time_filter:
-                    dt_options = ["year", "month", "day", "hour", "minute", "second"]
-                    tab1, tab2, tab3 = st.sidebar.tabs(["filter", "filter by", "filter type"])
-                    dt_filter_value = tab2.selectbox(
-                    f"{date_col} filter",
-                    options=dt_options,
-                    )
-                    filter_type = tab3.selectbox(
-                    f"{date_col} filter type",
-                    options=["range", "values"],
-                    )
-                    if filter_type == "range" :
-                        dt_col = get_attribute(df[date_col].dt, dt_filter_value)
-                        mini = int(dt_col.max())
-                        maxi = int(dt_col.min())
-                        slid_range = maxi - mini
-                        steps = None
-                        if slid_range > 1000000 :
-                            steps = int(slid_range / 1000000)
-                        dt_slider_values = tab1.slider(
-                            f'Select a range of {date_col} values',
-                            mini, maxi, (mini, maxi),
-                            step=steps,
-                            )
-                        mask =  (get_attribute(df[date_col].dt, dt_filter_value) >= dt_slider_values[0]) & (get_attribute(df[date_col].dt, dt_filter_value) <= dt_slider_values[1])
-                        df = df[mask]
-                    if filter_type == 'values':
-                        dt_list = df[date_col].dt.year.unique()
-                        dt_value_list = []
-                        for dt in dt_list:
-                            checked = tab1.checkbox(str(dt), value=True)
-                            if checked :
-                                dt_value_list.append(dt)
-                        if dt_value_list:
-                            mask =  ( df[date_col].dt.year.isin(dt_value_list) )
-                            df = df[mask]
+
+        datetime_filter = DateTimeFilter(df, datetime_columns)
+        datetime_filter.apply_filters() 
+        
+        categorical_filter = CategoricalFilter(df, categorical_columns, boolean_columns)
+        categorical_filter.apply_filters()
+
+        numeric_filter = NumericFilter(df, numeric_columns)
+        numeric_filter.apply_filters()
 
 
 
-
-        categoric_filter = st.sidebar.multiselect(
-            "filter by catogery and boolian values: ",
-            options=categorical_columns+boolean_columns,
-            
-        )
-
-
-        if categoric_filter :
-            for col in categoric_filter:
-                options = df[col].unique().tolist()
-                cat_filter_value = st.sidebar.multiselect(
-                f"{col} filter",
-                options=options,
-                )
-                if cat_filter_value:
-                    df = df[df[col].isin(cat_filter_value)]
-
+        # --- DISPLAY groupby ---
 
 
         numberic_filter = st.sidebar.multiselect(
@@ -143,7 +96,6 @@ def main():
                 numberic_filter_dict[col]=measure_option
 
 
-        grouped = None
 
         # --- DISPLAY DATAFRAME ---
         def filter_groupby(col):
@@ -156,7 +108,6 @@ def main():
                         df_filtered =  df_filtered.groupby(col)
                         if len(df_grouped) <= 1 :
                             return df
-                        global grouped; 
                         grouped = get_attribute(df_grouped, measures_methodes[measurs])()[[filter_col]]
                         mini = int(grouped.min()[0])
                         maxi = int(grouped.max()[0])

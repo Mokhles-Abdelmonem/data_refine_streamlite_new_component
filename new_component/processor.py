@@ -107,7 +107,7 @@ class Classifier():
                 ))
                 
         for col in  self.df[other_dtypes_columns]:
-            sample = self.df[col].sample(10).to_list()
+            sample = self.df[col].sample(10, replace=True).to_list()
             if len(col) > 6 and has_numbers(sample) :
                 try:
                     self.df[col] = pd.to_datetime(self.df[col])

@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 
 
-if 'uploaded' not in st.session_state:
-    st.session_state.uploaded = False
-
 
 class Loader:
     def __init__(self):

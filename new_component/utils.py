@@ -1,5 +1,5 @@
 import streamlit as st
-
+from pandas import DataFrame
 
 
 def get_attribute(obj: object, attr: str) -> any:
@@ -40,3 +40,17 @@ measures_methodes ={
     "VARIANCE":"var",
     "VARIANCE (POPULATION)":"var",
 }
+
+
+
+
+def load_state() -> None:
+    if 'uploaded' not in st.session_state:
+        st.session_state.uploaded = False
+
+
+
+def update_df(df:DataFrame) -> None:
+    if not df.equals(st.session_state.df):
+        st.session_state.df = df
+        st.rerun()
