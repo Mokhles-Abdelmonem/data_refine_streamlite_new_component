@@ -1,14 +1,15 @@
 import streamlit as st
-from utils import get_attribute, update_df , measures_methodes
-
+from utils import get_attribute, measures_methodes
+from data_loader import Loader
 
 class DateTimeFilter:
     def __init__(self, df, datetime_columns):
         self.df = df
+        self.base_df = Loader.base_df()
         self.datetime_columns = datetime_columns
 
     def filter_by_range(self, col, filter_value):
-        dt_col = get_attribute(self.df[col].dt, filter_value)
+        dt_col = get_attribute(self.base_df[col].dt, filter_value)
         mini, maxi = int(dt_col.min()), int(dt_col.max())
         slid_range = maxi - mini
         steps = int(slid_range / 1000000) if slid_range > 1000000 else None
@@ -23,10 +24,10 @@ class DateTimeFilter:
                     (get_attribute(self.df[col].dt, filter_value) <= dt_slider_values[1])
 
         self.df = self.df[self.mask]
-        update_df(self.df)
+        Loader.update_df(self.df)
 
     def filter_by_values(self, col):
-        dt_list = self.df[col].dt.year.unique()
+        dt_list = self.base_df[col].dt.year.unique()
         dt_value_list = []
 
         for dt in dt_list:
@@ -37,7 +38,7 @@ class DateTimeFilter:
         if dt_value_list:
             self.mask = (self.df[col].dt.year.isin(dt_value_list))
             self.df = self.df[self.mask]
-            update_df(self.df)
+            Loader.update_df(self.df)
 
     def apply_filters(self):
 
@@ -71,6 +72,7 @@ class DateTimeFilter:
 class CategoricalFilter:
     def __init__(self, df, categorical_columns, boolean_columns):
         self.df = df
+        self.base_df = Loader.base_df()
         self.categorical_columns = categorical_columns
         self.boolean_columns = boolean_columns
 
@@ -82,7 +84,7 @@ class CategoricalFilter:
         )
 
         for col in categoric_filter:
-            options = self.df[col].unique().tolist()
+            options = self.base_df[col].unique().tolist()
             cat_filter_value = st.sidebar.multiselect(
                 f"{col} filter",
                 options=options,
@@ -90,16 +92,16 @@ class CategoricalFilter:
 
             if cat_filter_value:
                 self.df = self.df[self.df[col].isin(cat_filter_value)]
-                update_df(self.df)
+                Loader.update_df(self.df)
 
 
 class NumericFilter:
     def __init__(self, df, numeric_columns):
         self.df = df
+        self.base_df = Loader.base_df()
         self.numeric_columns = numeric_columns
 
     def apply_filters(self):
-        st.sidebar.header("Filters:")
         
         numeric_filter = st.sidebar.multiselect(
             "Filter by numeric values:",
@@ -110,7 +112,7 @@ class NumericFilter:
             self.filter_by_range(col)
 
     def filter_by_range(self, col):
-        df_col = self.df[col]
+        df_col = self.base_df[col]
         mini, maxi = int(df_col.min()), int(df_col.max())
         slid_range = maxi - mini
         steps = int(slid_range / 1000000) if slid_range > 1000000 else None
@@ -125,4 +127,4 @@ class NumericFilter:
                     (df_col <= dt_slider_values[1])
 
         self.df = self.df[self.mask]
-        update_df(self.df)
+        Loader.update_df(self.df)

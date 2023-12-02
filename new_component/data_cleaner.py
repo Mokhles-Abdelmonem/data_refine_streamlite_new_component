@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 from processor import DataProcess
 from pandas import DataFrame
-from utils import update_df
-
+from data_loader import Loader
 
 class Cleaner:
     def __init__(self, df:DataFrame) -> None:
@@ -45,10 +44,10 @@ class Cleaner:
 
         if handle_nulls_options.index(dt_null_value) == 1 :
             self.df = DataProcess(self.df).drop_null_col()
-            update_df(self.df)
+            Loader.update_df(self.df)
         if handle_nulls_options.index(dt_null_value) == 2 :
             self.df = DataProcess(self.df).drop_null_row()
-            update_df(self.df)
+            Loader.update_df(self.df)
 
     def handle_duplicates(self) -> None:
         alert_msg = f"you have {self.duplicates_num} duplicated on your data"
