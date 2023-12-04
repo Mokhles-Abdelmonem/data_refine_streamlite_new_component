@@ -1,6 +1,7 @@
 import streamlit as st
 from utils import get_attribute, measures_methodes
 from data_loader import Loader
+from pandas import DataFrame
 
 class DateTimeFilter:
     def __init__(self, df, datetime_columns):
@@ -20,11 +21,10 @@ class DateTimeFilter:
             step=steps,
         )
 
-        self.mask = (get_attribute(self.df[col].dt, filter_value) >= dt_slider_values[0]) & \
+        mask = (get_attribute(self.df[col].dt, filter_value) >= dt_slider_values[0]) & \
                     (get_attribute(self.df[col].dt, filter_value) <= dt_slider_values[1])
 
-        self.df = self.df[self.mask]
-        Loader.update_df(self.df)
+        self.df = self.df[mask]
 
     def filter_by_values(self, col):
         dt_list = self.base_df[col].dt.year.unique()
@@ -38,9 +38,8 @@ class DateTimeFilter:
         if dt_value_list:
             self.mask = (self.df[col].dt.year.isin(dt_value_list))
             self.df = self.df[self.mask]
-            Loader.update_df(self.df)
 
-    def apply_filters(self):
+    def apply_filters(self) -> DataFrame:
 
         if self.datetime_columns :
 
@@ -67,7 +66,7 @@ class DateTimeFilter:
                     self.filter_by_range(col, dt_filter_value)
                 elif filter_type == 'values':
                     self.filter_by_values(col)
-
+        return self.df
 
 class CategoricalFilter:
     def __init__(self, df, categorical_columns, boolean_columns):
@@ -76,7 +75,7 @@ class CategoricalFilter:
         self.categorical_columns = categorical_columns
         self.boolean_columns = boolean_columns
 
-    def apply_filters(self):
+    def apply_filters(self) -> DataFrame:
         
         categoric_filter = st.sidebar.multiselect(
             "Filter by category and boolean values:",
@@ -91,9 +90,11 @@ class CategoricalFilter:
             )
 
             if cat_filter_value:
-                self.df = self.df[self.df[col].isin(cat_filter_value)]
-                Loader.update_df(self.df)
+                self.df = self.base_df[self.df[col].isin(cat_filter_value)]
+            # TODO:
+            # CategoricalFilter not applying after update
 
+        return self.df
 
 class NumericFilter:
     def __init__(self, df, numeric_columns):
@@ -101,7 +102,7 @@ class NumericFilter:
         self.base_df = Loader.base_df()
         self.numeric_columns = numeric_columns
 
-    def apply_filters(self):
+    def apply_filters(self) -> DataFrame:
         
         numeric_filter = st.sidebar.multiselect(
             "Filter by numeric values:",
@@ -110,6 +111,8 @@ class NumericFilter:
 
         for col in numeric_filter:
             self.filter_by_range(col)
+
+        return self.df
 
     def filter_by_range(self, col):
         df_col = self.base_df[col]
@@ -123,8 +126,7 @@ class NumericFilter:
             step=steps,
         )
 
-        self.mask = (df_col >= dt_slider_values[0]) & \
-                    (df_col <= dt_slider_values[1])
+        mask = (df_col >= min(dt_slider_values)) & (df_col <= max(dt_slider_values))
 
-        self.df = self.df[self.mask]
-        Loader.update_df(self.df)
+        self.df = self.base_df[mask]
+        return self.df

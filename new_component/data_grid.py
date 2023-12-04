@@ -1,9 +1,6 @@
-import streamlit.components.v1 as components
 import streamlit as st
-import pandas as pd
-from processor import DataProcess, ColumnProcess, Classifier
+from processor import Classifier
 import plotly.express as px
-import plotly.graph_objs as go
 from data_loader import Loader
 from data_cleaner import Cleaner
 from Filters import DateTimeFilter, CategoricalFilter, NumericFilter
@@ -29,7 +26,7 @@ def main():
         cleaner.data_editor()
 
         # ---- Variables ----
-        classifier = Classifier(df=Loader.base_df())
+        classifier = Classifier(df=df)
         (
             numeric_columns,
             boolean_columns,
@@ -39,8 +36,21 @@ def main():
 
         ) = classifier.classify()
 
-        # ---- column ---- 
+        # ---- Filters ----
 
+        st.sidebar.header("Filters :")
+
+        datetime_filter = DateTimeFilter(df, datetime_columns)
+        df = datetime_filter.apply_filters() 
+        
+        categorical_filter = CategoricalFilter(df, categorical_columns, boolean_columns)
+        df = categorical_filter.apply_filters()
+
+        numeric_filter = NumericFilter(df, numeric_columns)
+        df = numeric_filter.apply_filters()
+
+
+        # --- DISPLAY ---
 
         col_list = ["(Count)"] + col_list
         columns = st.multiselect(
@@ -55,22 +65,6 @@ def main():
             
         )
 
-        # ---- Filters ----
-
-        st.sidebar.header("Filters :")
-
-        datetime_filter = DateTimeFilter(df, datetime_columns)
-        datetime_filter.apply_filters() 
-        
-        categorical_filter = CategoricalFilter(df, categorical_columns, boolean_columns)
-        categorical_filter.apply_filters()
-
-        numeric_filter = NumericFilter(df, numeric_columns)
-        numeric_filter.apply_filters()
-
-
-
-        # --- DISPLAY ---
 
         df_grouped= None
         chart = None
@@ -85,18 +79,20 @@ def main():
                                 row = f"_{row}"
                             df_grouped = df
                         else:
-                            measure_option = st.selectbox(
+                            col_measure_option = st.selectbox(
                             f"Measurement applied on col {col}",
                             options=measures_methodes.keys(),
+                            key=f"{row}_measure"
                             )
-                            df_grouped = get_attribute(df.groupby(row), measures_methodes[measure_option])().reset_index()
+                            df_grouped = get_attribute(df.groupby(row), measures_methodes[col_measure_option])().reset_index()
                     else:
                         if row in numeric_columns:
-                            measure_option = st.selectbox(
+                            row_measure_option = st.selectbox(
                             f"Measurement applied on row {row} for column {col}",
                             options=measures_methodes.keys(),
+                            key=f"{col}_measure"
                             )
-                            df_grouped = get_attribute(df.groupby(col), measures_methodes[measure_option])().reset_index()
+                            df_grouped = get_attribute(df.groupby(col), measures_methodes[row_measure_option])().reset_index()
                         else:
                             if row == col :
                                 df[f"_{row}"] =  df[row]
