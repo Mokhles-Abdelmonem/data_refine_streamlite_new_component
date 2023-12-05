@@ -6,7 +6,7 @@ from pandas import DataFrame
 class DateTimeFilter:
     def __init__(self, df, datetime_columns):
         self.df = df
-        self.base_df = Loader.base_df()
+        self.base_df = df.copy()
         self.datetime_columns = datetime_columns
 
     def filter_by_range(self, col, filter_value):
@@ -71,7 +71,7 @@ class DateTimeFilter:
 class CategoricalFilter:
     def __init__(self, df, categorical_columns, boolean_columns):
         self.df = df
-        self.base_df = Loader.base_df()
+        self.base_df = df.copy()
         self.categorical_columns = categorical_columns
         self.boolean_columns = boolean_columns
 
@@ -90,16 +90,15 @@ class CategoricalFilter:
             )
 
             if cat_filter_value:
-                self.df = self.base_df[self.df[col].isin(cat_filter_value)]
-            # TODO:
-            # CategoricalFilter not applying after update
+                print(self.base_df[self.base_df[col].isin(cat_filter_value)])
+                self.df = self.base_df[self.base_df[col].isin(cat_filter_value)]
 
         return self.df
 
 class NumericFilter:
     def __init__(self, df, numeric_columns):
         self.df = df
-        self.base_df = Loader.base_df()
+        self.base_df = df.copy()
         self.numeric_columns = numeric_columns
 
     def apply_filters(self) -> DataFrame:
