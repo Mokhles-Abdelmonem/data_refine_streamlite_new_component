@@ -60,9 +60,8 @@ class Cleaner:
         dt_duplicates_value = st.sidebar.selectbox("Handle Duplicates", options=handle_duplicates_options)
 
         if handle_duplicates_options.index(dt_duplicates_value) == 1 :
-            self.df = DataProcess(self.df).drop_null_col()
-            st.session_state.df = self.df
-            st.rerun()
+            self.df = DataProcess(self.df).drop_duplicates()
+            Loader.update_df(self.df)
 
     def data_editor(self) -> None:
         st.data_editor(self.df)
